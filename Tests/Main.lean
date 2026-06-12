@@ -51,6 +51,8 @@ def assertNear (label : String) (actual expected tol : Float) : IO Unit := do
 def testBlas1 : IO Unit := do
   let x := mkOpenCL #[one, two, negThree]
   assertArrayBits "copy" x.copy #[one, two, negThree]
+  assertArrayBits "slice middle" (x.slice 1 3) #[two, negThree]
+  assertScalarBits "getDevice" (x.getDevice 2) negThree
   assertArrayBits "scal" (x.copy.scal two) #[two, four, (-6 : Float32)]
   assertArrayBits "mapUnsafe" (unsafe x.copy.mapUnsafe "x * 2.0f + (float)gid") #[two, five, (-4 : Float32)]
   assertArrayBits "mapInContextUnsafe"

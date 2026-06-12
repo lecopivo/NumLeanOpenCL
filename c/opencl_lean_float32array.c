@@ -533,6 +533,55 @@ lean_obj_res numlean_opencl_float32array_to_array(b_lean_obj_arg obj) {
     return numlean_opencl_float32array_data(obj);
 }
 
+lean_obj_res numlean_opencl_float32arrayopencl_slice(b_lean_obj_arg obj, b_lean_obj_arg start_obj, b_lean_obj_arg stop_obj) {
+    size_t start = lean_usize_of_nat(start_obj);
+    size_t stop = lean_usize_of_nat(stop_obj);
+
+    if (!lean_is_external((lean_object*)obj)) {
+        lean_object* data = lean_ctor_get((lean_object*)obj, 0);
+        size_t n = lean_array_size(data);
+        if (start > n) start = n;
+        if (stop > n) stop = n;
+        if (stop < start) stop = start;
+
+        lean_object* out = lean_alloc_array(0, stop - start);
+        for (size_t i = start; i < stop; i++) {
+            lean_object* x = lean_array_get_core(data, i);
+            lean_inc(x);
+            out = lean_array_push(out, x);
+        }
+        return numlean_opencl_float32array_mk(out);
+    }
+
+    NumLeanOpenCLFloat32Array* xs = (NumLeanOpenCLFloat32Array*)lean_get_external_data(obj);
+    if (start > xs->size) start = xs->size;
+    if (stop > xs->size) stop = xs->size;
+    if (stop < start) stop = start;
+
+    size_t out_size = stop - start;
+    NumLeanOpenCLFloat32Array* out = alloc_record(out_size, out_size);
+    if (out_size > 0) {
+        cl_event event = NULL;
+        cl_int err = clEnqueueCopyBuffer(
+            g_numleanopencl_ctx.queue,
+            xs->buffer,
+            out->buffer,
+            start * sizeof(float),
+            0,
+            out_size * sizeof(float),
+            0,
+            NULL,
+            &event);
+        if (err != CL_SUCCESS) {
+            if (event) clReleaseEvent(event);
+            float32array_finalize(out);
+            lean_internal_panic("clEnqueueCopyBuffer failed for OpenCL Float32Array.slice");
+        }
+        numlean_opencl_profile_record("copy/slice", out_size, out_size * sizeof(float), event);
+    }
+    return box_record(out);
+}
+
 lean_obj_res numlean_opencl_float32array_push(lean_obj_arg obj, float x) {
     if (!lean_is_external(obj)) {
         lean_object* data = lean_ctor_get(obj, 0);

@@ -64,6 +64,7 @@ lean_obj_res numlean_opencl_float32arrayopencl_mk(lean_obj_arg data);
 lean_obj_res numlean_opencl_float32arrayopencl_of_array(lean_obj_arg data);
 lean_obj_res numlean_opencl_float32arrayopencl_data(b_lean_obj_arg xs);
 lean_obj_res numlean_opencl_float32arrayopencl_to_array(b_lean_obj_arg xs);
+lean_obj_res numlean_opencl_float32arrayopencl_slice(b_lean_obj_arg xs, b_lean_obj_arg start, b_lean_obj_arg stop);
 lean_obj_res numlean_opencl_float32arrayopencl_empty_with_capacity(b_lean_obj_arg capacity);
 lean_obj_res numlean_opencl_float32arrayopencl_push(lean_obj_arg xs, float x);
 lean_obj_res numlean_opencl_float32arrayopencl_size(b_lean_obj_arg xs);

@@ -54,6 +54,17 @@ def isEmpty (xs : OpenCLFloat32Array) : Bool :=
 @[extern "numlean_opencl_float32arrayopencl_to_array"]
 def toArray (xs : @& OpenCLFloat32Array) : Array Float32 := xs.data
 
+/--
+Copy the half-open range `[start, stop)` into a new OpenCL array.
+
+The extern implementation enqueues a non-blocking `clEnqueueCopyBuffer` when the
+input is OpenCL-backed. Indices are clamped to the source size; if `stop < start`,
+the result is empty.
+-/
+@[extern "numlean_opencl_float32arrayopencl_slice"]
+def slice (xs : @& OpenCLFloat32Array) (start stop : @& Nat) : OpenCLFloat32Array :=
+  ⟨xs.data.extract start stop⟩
+
 @[extern "numlean_opencl_float32arrayopencl_get"]
 def get : (xs : @& OpenCLFloat32Array) -> (i : @& Nat) -> (h : i < xs.size := by get_elem_tactic) -> Float32
   | xs, i, _ => xs.toArray[i]!
@@ -183,6 +194,19 @@ def ofFloat32 (x : Float32) : OpenCLFloat32 :=
 end OpenCLFloat32
 
 namespace OpenCLFloat32Array
+
+axiom size_slice_one (xs : OpenCLFloat32Array) (i : Nat) (h : i < xs.size) :
+  (xs.slice i (i + 1)).size = 1
+
+/--
+Return element `i` as a GPU-resident scalar without blocking for a host read.
+
+The returned `OpenCLFloat32` is represented by a size-one OpenCL array. Runtime
+implementation uses `slice i (i + 1)`, which enqueues a device-to-device copy and
+returns immediately.
+-/
+def getDevice (xs : @& OpenCLFloat32Array) (i : @& Nat) (h : i < xs.size := by get_elem_tactic) : OpenCLFloat32 :=
+  ⟨xs.slice i (i + 1), size_slice_one xs i h⟩
 
 private def sumSpec (xs : OpenCLFloat32Array) : OpenCLFloat32Array :=
   ⟨#[xs.toArray.foldl (· + ·) (0 : Float32)]⟩
