@@ -134,7 +134,7 @@ def testMapFinIdx : IO Unit := do
   let ys := mkOpenCL #[one, two, four, ten]
   assertArrayBits "mapFinIdx laplacian wrap"
     (map4 ys)
-    #[ten, one, four, (-15 : Float32)]
+    #[10, 1, 4, -15]
 
 partial def iterateScal (n : Nat) (x : OpenCLFloat32Array) : OpenCLFloat32Array :=
   if n == 0 then x else iterateScal (n - 1) (x.scal two)
