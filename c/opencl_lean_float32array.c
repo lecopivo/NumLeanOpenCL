@@ -534,6 +534,7 @@ lean_obj_res numlean_opencl_float32array_to_array(b_lean_obj_arg obj) {
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_slice(b_lean_obj_arg obj, b_lean_obj_arg start_obj, b_lean_obj_arg stop_obj) {
+    ensure_opencl_initialized();
     size_t start = lean_usize_of_nat(start_obj);
     size_t stop = lean_usize_of_nat(stop_obj);
 
@@ -849,54 +850,67 @@ lean_obj_res numlean_opencl_float32array_add(lean_obj_arg a_obj, lean_obj_arg b_
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_mk(lean_obj_arg data) {
+    ensure_opencl_initialized();
     return numlean_opencl_float32array_mk(data);
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_of_array(lean_obj_arg data) {
+    ensure_opencl_initialized();
     return numlean_opencl_float32array_mk(data);
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_data(b_lean_obj_arg xs) {
+    ensure_opencl_initialized();
     return numlean_opencl_float32array_data(xs);
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_to_array(b_lean_obj_arg xs) {
+    ensure_opencl_initialized();
     return numlean_opencl_float32array_to_array(xs);
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_empty_with_capacity(b_lean_obj_arg capacity) {
+    ensure_opencl_initialized();
     return numlean_opencl_float32array_empty_with_capacity(capacity);
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_push(lean_obj_arg xs, float x) {
+    ensure_opencl_initialized();
     return numlean_opencl_float32array_push(xs, x);
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_size(b_lean_obj_arg xs) {
+    ensure_opencl_initialized();
     return numlean_opencl_float32array_size(xs);
 }
 
 size_t numlean_opencl_float32arrayopencl_usize(b_lean_obj_arg xs) {
+    ensure_opencl_initialized();
     return numlean_opencl_float32array_usize(xs);
 }
 
 float numlean_opencl_float32arrayopencl_get(b_lean_obj_arg xs, b_lean_obj_arg i) {
+    ensure_opencl_initialized();
     return numlean_opencl_float32array_get(xs, i);
 }
 
 float numlean_opencl_float32arrayopencl_get_bang(b_lean_obj_arg xs, b_lean_obj_arg i) {
+    ensure_opencl_initialized();
     return numlean_opencl_float32array_get_bang(xs, i);
 }
 
 uint8_t numlean_opencl_float32arrayopencl_beq(lean_obj_arg a, lean_obj_arg b) {
+    ensure_opencl_initialized();
     return numlean_opencl_float32array_beq(a, b);
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_add(lean_obj_arg a, lean_obj_arg b) {
+    ensure_opencl_initialized();
     return numlean_opencl_float32array_add(a, b);
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_sum(lean_obj_arg obj) {
+    ensure_opencl_initialized();
     if (!lean_is_external(obj)) {
         lean_object* data = numlean_opencl_float32array_data(obj);
         size_t n = lean_array_size(data);
@@ -968,11 +982,13 @@ lean_obj_res numlean_opencl_float32arrayopencl_sum(lean_obj_arg obj) {
 }
 
 lean_obj_res numlean_opencl_float32opencl_of_float32(float x) {
+    ensure_opencl_initialized();
     lean_object* obj = numlean_opencl_float32array_empty_with_capacity(lean_unsigned_to_nat(1));
     return numlean_opencl_float32array_push(obj, x);
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_copy(lean_obj_arg obj) {
+    ensure_opencl_initialized();
     if (!lean_is_external(obj)) {
         lean_object* data = numlean_opencl_float32array_data(obj);
         lean_dec(obj);
@@ -986,6 +1002,7 @@ lean_obj_res numlean_opencl_float32arrayopencl_copy(lean_obj_arg obj) {
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_scal(float alpha, lean_obj_arg obj) {
+    ensure_opencl_initialized();
     if (!lean_is_external(obj)) {
         lean_object* data = numlean_opencl_float32array_data(obj);
         size_t n = lean_array_size(data);
@@ -1019,6 +1036,7 @@ lean_obj_res numlean_opencl_float32arrayopencl_scal(float alpha, lean_obj_arg ob
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_map_unsafe(lean_obj_arg obj, b_lean_obj_arg expr_obj) {
+    ensure_opencl_initialized();
     if (!lean_is_external(obj)) {
         lean_object* data = numlean_opencl_float32array_data(obj);
         lean_dec(obj);
@@ -1055,6 +1073,7 @@ lean_obj_res numlean_opencl_float32arrayopencl_map_unsafe(lean_obj_arg obj, b_le
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_map_in_context_unsafe(lean_obj_arg obj, b_lean_obj_arg ctx_obj, b_lean_obj_arg expr_obj) {
+    ensure_opencl_initialized();
     if (!lean_is_external(obj)) {
         lean_object* data = numlean_opencl_float32array_data(obj);
         lean_dec(obj);
@@ -1124,6 +1143,7 @@ lean_obj_res numlean_opencl_float32arrayopencl_map_in_context_unsafe(lean_obj_ar
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_axpy(float alpha, lean_obj_arg x_obj, lean_obj_arg y_obj) {
+    ensure_opencl_initialized();
     if (!lean_is_external(x_obj) || !lean_is_external(y_obj)) {
         lean_object* x_data = numlean_opencl_float32array_data(x_obj);
         lean_object* y_data = numlean_opencl_float32array_data(y_obj);
@@ -1166,6 +1186,7 @@ lean_obj_res numlean_opencl_float32arrayopencl_axpy(float alpha, lean_obj_arg x_
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_swap(lean_obj_arg x_obj, lean_obj_arg y_obj) {
+    ensure_opencl_initialized();
     if (!lean_is_external(x_obj) || !lean_is_external(y_obj)) {
         lean_object* x_data = numlean_opencl_float32array_data(x_obj);
         lean_object* y_data = numlean_opencl_float32array_data(y_obj);
@@ -1203,6 +1224,7 @@ lean_obj_res numlean_opencl_float32arrayopencl_swap(lean_obj_arg x_obj, lean_obj
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_rot(float c, float s, lean_obj_arg x_obj, lean_obj_arg y_obj) {
+    ensure_opencl_initialized();
     if (!lean_is_external(x_obj) || !lean_is_external(y_obj)) {
         lean_object* x_data = numlean_opencl_float32array_data(x_obj);
         lean_object* y_data = numlean_opencl_float32array_data(y_obj);
@@ -1244,6 +1266,7 @@ lean_obj_res numlean_opencl_float32arrayopencl_rot(float c, float s, lean_obj_ar
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_dot(lean_obj_arg x_obj, lean_obj_arg y_obj) {
+    ensure_opencl_initialized();
     if (!lean_is_external(x_obj) || !lean_is_external(y_obj)) {
         lean_object* x_data = numlean_opencl_float32array_data(x_obj);
         lean_object* y_data = numlean_opencl_float32array_data(y_obj);
@@ -1286,11 +1309,13 @@ lean_obj_res numlean_opencl_float32arrayopencl_dot(lean_obj_arg x_obj, lean_obj_
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_asum(lean_obj_arg obj) {
+    ensure_opencl_initialized();
     cl_kernel kernel = get_blas1_kernel("numlean_opencl_blas1_asum", &g_asum_kernel);
     return scalar_array_from_kernel_unary(obj, kernel);
 }
 
 lean_obj_res numlean_opencl_float32arrayopencl_nrm2(lean_obj_arg obj) {
+    ensure_opencl_initialized();
     cl_kernel kernel = get_blas1_kernel("numlean_opencl_blas1_nrm2", &g_nrm2_kernel);
     return scalar_array_from_kernel_unary(obj, kernel);
 }
