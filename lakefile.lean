@@ -30,5 +30,7 @@ extern_lib liblean_numleanopencl_opencl (pkg) := do
 
 @[default_target] lean_exe numleanopencl where root := `Main
 
+lean_exe opencl_profile where root := `Profile
+
 @[test_driver] lean_exe numleanopencl_tests where
   root := `Tests.Main

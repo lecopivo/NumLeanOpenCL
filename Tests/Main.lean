@@ -3,27 +3,24 @@ import NumLeanOpenCL.Data.Float32Array.Map
 
 open NumLean
 
-def f32 (bits : UInt32) : Float32 :=
-  Float32.ofBits bits
-
-def zero : Float32 := f32 0x00000000
-def one : Float32 := f32 0x3f800000
-def two : Float32 := f32 0x40000000
-def three : Float32 := f32 0x40400000
-def four : Float32 := f32 0x40800000
-def five : Float32 := f32 0x40a00000
-def six : Float32 := f32 0x40c00000
-def ten : Float32 := f32 0x41200000
-def twenty : Float32 := f32 0x41a00000
-def negOne : Float32 := f32 0xbf800000
-def negTwo : Float32 := f32 0xc0000000
-def negThree : Float32 := f32 0xc0400000
-def twelve : Float32 := f32 0x41400000
-def fourteen : Float32 := f32 0x41600000
-def twentyFour : Float32 := f32 0x41c00000
+def zero : Float32 := 0
+def one : Float32 := 1
+def two : Float32 := 2
+def three : Float32 := 3
+def four : Float32 := 4
+def five : Float32 := 5
+def six : Float32 := 6
+def ten : Float32 := 10
+def twenty : Float32 := 20
+def negOne : Float32 := -1
+def negTwo : Float32 := -2
+def negThree : Float32 := -3
+def twelve : Float32 := 12
+def fourteen : Float32 := 14
+def twentyFour : Float32 := 24
 
 def mkOpenCL (xs : Array Float32) : OpenCLFloat32Array :=
-  xs.foldl (fun acc x => acc.push x) (OpenCLFloat32Array.emptyWithCapacity xs.size)
+  OpenCLFloat32Array.ofArray xs
 
 def fail (msg : String) : IO α :=
   throw <| IO.userError msg
@@ -54,11 +51,11 @@ def assertNear (label : String) (actual expected tol : Float) : IO Unit := do
 def testBlas1 : IO Unit := do
   let x := mkOpenCL #[one, two, negThree]
   assertArrayBits "copy" x.copy #[one, two, negThree]
-  assertArrayBits "scal" (x.copy.scal two) #[two, four, f32 0xc0c00000]
-  assertArrayBits "mapUnsafe" (unsafe x.copy.mapUnsafe "x * 2.0f + (float)gid") #[two, five, f32 0xc0800000]
+  assertArrayBits "scal" (x.copy.scal two) #[two, four, (-6 : Float32)]
+  assertArrayBits "mapUnsafe" (unsafe x.copy.mapUnsafe "x * 2.0f + (float)gid") #[two, five, (-4 : Float32)]
   assertArrayBits "mapInContextUnsafe"
     (unsafe (mkOpenCL #[one, two, three]).mapInContextUnsafe #[mkOpenCL #[ten, twenty]] "x + (gid < ctx0_size ? ctx0[gid] : 0.0f)")
-    #[f32 0x41300000, f32 0x41b00000, three]
+    #[(11 : Float32), (22 : Float32), three]
 
   let ax := mkOpenCL #[one, two, three]
   let ay := mkOpenCL #[ten, twenty]
@@ -66,7 +63,7 @@ def testBlas1 : IO Unit := do
 
   let addA := mkOpenCL #[one, two, three]
   let addB := mkOpenCL #[ten]
-  assertArrayBits "add capped" (addA + addB) #[f32 0x41300000, two, three]
+  assertArrayBits "add capped" (addA + addB) #[(11 : Float32), two, three]
 
   assertScalarBits "sum" (mkOpenCL #[one, two, three] |>.sum) six
   assertScalarBits "dot capped" (OpenCLFloat32Array.dot (mkOpenCL #[one, two, three]) (mkOpenCL #[four, five])) fourteen
@@ -130,12 +127,12 @@ def testMapFinIdx : IO Unit := do
 
   assertArrayBits "mapFinIdx fused multiply-add shape"
     (map3 xs)
-    #[one, four, f32 0x41100000]
+    #[one, four, (9 : Float32)]
 
   let ys := mkOpenCL #[one, two, four, ten]
   assertArrayBits "mapFinIdx laplacian wrap"
     (map4 ys)
-    #[ten, one, four, f32 0xc1700000]
+    #[ten, one, four, (-15 : Float32)]
 
 partial def iterateScal (n : Nat) (x : OpenCLFloat32Array) : OpenCLFloat32Array :=
   if n == 0 then x else iterateScal (n - 1) (x.scal two)
@@ -153,13 +150,13 @@ def testExecutionModel : IO Unit := do
   let copied := alias.copy
   let copiedScaled := copied.scal ten
   assertArrayBits "copy source unchanged" alias #[one, two, three]
-  assertArrayBits "copy target independent" copiedScaled #[ten, twenty, f32 0x41f00000]
+  assertArrayBits "copy target independent" copiedScaled #[ten, twenty, (30 : Float32)]
 
   let ordered := iterateAxpy 64 (mkOpenCL #[one]) (mkOpenCL #[zero])
-  assertArrayBits "queue ordered axpy chain" ordered #[f32 0x42800000]
+  assertArrayBits "queue ordered axpy chain" ordered #[(64 : Float32)]
 
   let pow := iterateScal 10 (mkOpenCL #[one])
-  assertArrayBits "queue ordered scal chain" pow #[f32 0x44800000]
+  assertArrayBits "queue ordered scal chain" pow #[(1024 : Float32)]
 
   let shared := mkOpenCL #[one, two]
   let first := shared + mkOpenCL #[one, one]

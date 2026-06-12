@@ -2,11 +2,8 @@ import NumLeanOpenCL
 
 def main : IO Unit := do
   NumLean.initOpenCLContext
-  let xs := NumLean.OpenCLFloat32Array.emptyWithCapacity 16
-  let xs := xs.push (Float32.ofBits 0x3f800000)
-  let xs := xs.push (Float32.ofBits 0x40000000)
-  let ys := NumLean.OpenCLFloat32Array.emptyWithCapacity 16
-  let ys := ys.push (Float32.ofBits 0x40400000)
+  let xs := NumLean.OpenCLFloat32Array.ofArray #[(1 : Float32), (2 : Float32)]
+  let ys := NumLean.OpenCLFloat32Array.ofArray #[(3 : Float32)]
   let zs := xs + ys
   let s := zs.sum
   IO.println s!"OpenCL OpenCLFloat32Array size: {xs.size}"

@@ -24,6 +24,10 @@ def emptyWithCapacity (c : @& Nat) : OpenCLFloat32Array :=
 def empty : OpenCLFloat32Array :=
   emptyWithCapacity 0
 
+@[extern "numlean_opencl_float32arrayopencl_of_array"]
+def ofArray (xs : Array Float32) : OpenCLFloat32Array :=
+  ⟨xs⟩
+
 instance : Inhabited OpenCLFloat32Array where
   default := empty
 
@@ -167,7 +171,7 @@ structure OpenCLFloat32 where
 namespace OpenCLFloat32
 
 private def ofFloat32Spec (x : Float32) : OpenCLFloat32Array :=
-  (OpenCLFloat32Array.emptyWithCapacity 1).push x
+  OpenCLFloat32Array.ofArray #[x]
 
 axiom ofFloat32Spec_size (x : Float32) : (ofFloat32Spec x).size = 1
 
@@ -181,7 +185,7 @@ end OpenCLFloat32
 namespace OpenCLFloat32Array
 
 private def sumSpec (xs : OpenCLFloat32Array) : OpenCLFloat32Array :=
-  ⟨#[xs.toArray.foldl (· + ·) (Float32.ofBits 0)]⟩
+  ⟨#[xs.toArray.foldl (· + ·) (0 : Float32)]⟩
 
 axiom sumSpec_size (xs : OpenCLFloat32Array) : (sumSpec xs).size = 1
 
@@ -203,11 +207,11 @@ private partial def dotSpecLoop (x y : Array Float32) (i stop : Nat) (acc : Floa
 
 @[extern "numlean_opencl_float32arrayopencl_dot"]
 def dot (x y : OpenCLFloat32Array) : OpenCLFloat32 :=
-  OpenCLFloat32.ofFloat32 <| dotSpecLoop x.toArray y.toArray 0 (Nat.min x.size y.size) (Float32.ofBits 0)
+  OpenCLFloat32.ofFloat32 <| dotSpecLoop x.toArray y.toArray 0 (Nat.min x.size y.size) (0 : Float32)
 
 @[extern "numlean_opencl_float32arrayopencl_asum"]
 def asum (x : OpenCLFloat32Array) : OpenCLFloat32 :=
-  OpenCLFloat32.ofFloat32 <| x.toArray.foldl (fun acc v => acc + if v < Float32.ofBits 0 then -v else v) (Float32.ofBits 0)
+  OpenCLFloat32.ofFloat32 <| x.toArray.foldl (fun acc v => acc + if v < (0 : Float32) then -v else v) (0 : Float32)
 
 @[extern "numlean_opencl_float32arrayopencl_nrm2"]
 def nrm2 (x : OpenCLFloat32Array) : OpenCLFloat32 :=

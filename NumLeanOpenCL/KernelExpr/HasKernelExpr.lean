@@ -304,9 +304,9 @@ theorem ctx_size (xs : OpenCLFloat32Array)
 
 section Examples
 
-private def one : Float32 := Float32.ofBits 0x3f800000
-private def two : Float32 := Float32.ofBits 0x40000000
-private def three : Float32 := Float32.ofBits 0x40400000
+private def one : Float32 := 1
+private def two : Float32 := 2
+private def three : Float32 := 3
 
 variable (x : Float32) (i : Nat) (xs ys : OpenCLFloat32Array)
 

@@ -46,7 +46,7 @@ static void ensure_float32array_class(void) {
 
 static void ensure_opencl_initialized(void) {
     if (!g_numleanopencl_ctx.initialized) {
-        lean_object* r = numlean_opencl_init(lean_box(0));
+        lean_object* r = numlean_opencl_init();
         if (lean_io_result_is_error(r)) {
             lean_object* err = lean_io_result_get_error(r);
             lean_inc(err);
@@ -222,6 +222,7 @@ static cl_kernel get_blas1_kernel(const char* kernel_name, cl_kernel* cache) {
     if (*cache) return *cache;
 
     if (!g_blas1_program) {
+        double compile_start_us = numlean_opencl_profile_now_us();
         size_t src_len = 0;
         char* src = read_kernel_file("opencl/float32array_blas1.cl", &src_len);
         const char* sources[] = { src };
@@ -242,6 +243,7 @@ static cl_kernel get_blas1_kernel(const char* kernel_name, cl_kernel* cache) {
             log[log_len] = 0;
             lean_internal_panic(log);
         }
+        numlean_opencl_profile_record_host("compile/blas1", compile_start_us, numlean_opencl_profile_now_us());
     }
 
     cl_int err;
@@ -251,6 +253,7 @@ static cl_kernel get_blas1_kernel(const char* kernel_name, cl_kernel* cache) {
 }
 
 static cl_kernel compile_map_unsafe_kernel(const char* expr, cl_program* program_out) {
+    double compile_start_us = numlean_opencl_profile_now_us();
     const char* prefix =
         "__kernel void numlean_opencl_map_unsafe(__global float* xs, ulong n) {\n"
         "    size_t gid = get_global_id(0);\n"
@@ -288,11 +291,13 @@ static cl_kernel compile_map_unsafe_kernel(const char* expr, cl_program* program
 
     cl_kernel kernel = clCreateKernel(program, "numlean_opencl_map_unsafe", &err);
     if (err != CL_SUCCESS) lean_internal_panic("clCreateKernel failed for mapUnsafe");
+    numlean_opencl_profile_record_host("compile/mapUnsafe", compile_start_us, numlean_opencl_profile_now_us());
     *program_out = program;
     return kernel;
 }
 
 static cl_kernel compile_map_in_context_unsafe_kernel(const char* expr, size_t ctx_count, cl_program* program_out) {
+    double compile_start_us = numlean_opencl_profile_now_us();
     const char* prefix =
         "__kernel void numlean_opencl_map_in_context_unsafe(__global float* xs, ulong n";
     const char* body_prefix =
@@ -342,6 +347,7 @@ static cl_kernel compile_map_in_context_unsafe_kernel(const char* expr, size_t c
 
     cl_kernel kernel = clCreateKernel(program, "numlean_opencl_map_in_context_unsafe", &err);
     if (err != CL_SUCCESS) lean_internal_panic("clCreateKernel failed for mapInContextUnsafe");
+    numlean_opencl_profile_record_host("compile/mapInContextUnsafe", compile_start_us, numlean_opencl_profile_now_us());
     *program_out = program;
     return kernel;
 }
@@ -454,6 +460,7 @@ lean_obj_res numlean_opencl_float32array_mk(lean_obj_arg data) {
             tmp[i] = lean_unbox_float32(lean_array_get_core(data, i));
         }
 
+        cl_event event = NULL;
         cl_int err = clEnqueueWriteBuffer(
             g_numleanopencl_ctx.queue,
             xs->buffer,
@@ -463,13 +470,15 @@ lean_obj_res numlean_opencl_float32array_mk(lean_obj_arg data) {
             tmp,
             0,
             NULL,
-            NULL);
+            &event);
         free(tmp);
         if (err != CL_SUCCESS) {
+            if (event) clReleaseEvent(event);
             float32array_finalize(xs);
             lean_dec(data);
             lean_internal_panic("clEnqueueWriteBuffer failed for OpenCL Float32Array.mk");
         }
+        numlean_opencl_profile_record("write/ofArray", 0, n * sizeof(float), event);
     }
 
     lean_dec(data);
@@ -493,6 +502,7 @@ lean_obj_res numlean_opencl_float32array_data(b_lean_obj_arg obj) {
     float* tmp = (float*)malloc(xs->size * sizeof(float));
     if (!tmp) lean_internal_panic_out_of_memory();
 
+    cl_event event = NULL;
     cl_int err = clEnqueueReadBuffer(
         g_numleanopencl_ctx.queue,
         xs->buffer,
@@ -502,12 +512,14 @@ lean_obj_res numlean_opencl_float32array_data(b_lean_obj_arg obj) {
         tmp,
         0,
         NULL,
-        NULL);
+        &event);
     if (err != CL_SUCCESS) {
+        if (event) clReleaseEvent(event);
         free(tmp);
         lean_dec(data);
         lean_internal_panic("clEnqueueReadBuffer failed for OpenCL Float32Array.data");
     }
+    numlean_opencl_profile_record("read/toArray", 0, xs->size * sizeof(float), event);
 
     for (size_t i = 0; i < xs->size; i++) {
         lean_array_cptr(data)[i] = lean_box_float32(tmp[i]);
@@ -791,6 +803,10 @@ lean_obj_res numlean_opencl_float32arrayopencl_mk(lean_obj_arg data) {
     return numlean_opencl_float32array_mk(data);
 }
 
+lean_obj_res numlean_opencl_float32arrayopencl_of_array(lean_obj_arg data) {
+    return numlean_opencl_float32array_mk(data);
+}
+
 lean_obj_res numlean_opencl_float32arrayopencl_data(b_lean_obj_arg xs) {
     return numlean_opencl_float32array_data(xs);
 }
@@ -945,8 +961,10 @@ lean_obj_res numlean_opencl_float32arrayopencl_scal(float alpha, lean_obj_arg ob
         if (err != CL_SUCCESS) lean_internal_panic("clSetKernelArg failed for scal arg 1");
         err = clSetKernelArg(kernel, 2, sizeof(cl_ulong), &n_arg);
         if (err != CL_SUCCESS) lean_internal_panic("clSetKernelArg failed for scal arg 2");
-        err = clEnqueueNDRangeKernel(g_numleanopencl_ctx.queue, kernel, 1, NULL, &global, &local, 0, NULL, NULL);
+        cl_event event = NULL;
+        err = clEnqueueNDRangeKernel(g_numleanopencl_ctx.queue, kernel, 1, NULL, &global, &local, 0, NULL, &event);
         if (err != CL_SUCCESS) lean_internal_panic("clEnqueueNDRangeKernel failed for scal");
+        numlean_opencl_profile_record("kernel/scal", xs->size, 0, event);
     }
     return obj;
 }
@@ -973,12 +991,15 @@ lean_obj_res numlean_opencl_float32arrayopencl_map_unsafe(lean_obj_arg obj, b_le
         if (err != CL_SUCCESS) lean_internal_panic("clSetKernelArg failed for mapUnsafe arg 0");
         err = clSetKernelArg(kernel, 1, sizeof(cl_ulong), &n_arg);
         if (err != CL_SUCCESS) lean_internal_panic("clSetKernelArg failed for mapUnsafe arg 1");
-        err = clEnqueueNDRangeKernel(g_numleanopencl_ctx.queue, kernel, 1, NULL, &global, &local, 0, NULL, NULL);
+        cl_event event = NULL;
+        err = clEnqueueNDRangeKernel(g_numleanopencl_ctx.queue, kernel, 1, NULL, &global, &local, 0, NULL, &event);
         clReleaseKernel(kernel);
         clReleaseProgram(program);
         if (err != CL_SUCCESS) {
+            if (event) clReleaseEvent(event);
             lean_internal_panic("clEnqueueNDRangeKernel failed for mapUnsafe");
         }
+        numlean_opencl_profile_record("kernel/mapUnsafe", xs->size, 0, event);
     }
 
     return obj;
@@ -1035,10 +1056,15 @@ lean_obj_res numlean_opencl_float32arrayopencl_map_in_context_unsafe(lean_obj_ar
             if (err != CL_SUCCESS) lean_internal_panic("clSetKernelArg failed for mapInContextUnsafe context size");
         }
 
-        err = clEnqueueNDRangeKernel(g_numleanopencl_ctx.queue, kernel, 1, NULL, &global, &local, 0, NULL, NULL);
+        cl_event event = NULL;
+        err = clEnqueueNDRangeKernel(g_numleanopencl_ctx.queue, kernel, 1, NULL, &global, &local, 0, NULL, &event);
         clReleaseKernel(kernel);
         clReleaseProgram(program);
-        if (err != CL_SUCCESS) lean_internal_panic("clEnqueueNDRangeKernel failed for mapInContextUnsafe");
+        if (err != CL_SUCCESS) {
+            if (event) clReleaseEvent(event);
+            lean_internal_panic("clEnqueueNDRangeKernel failed for mapInContextUnsafe");
+        }
+        numlean_opencl_profile_record("kernel/mapInContextUnsafe", xs->size, 0, event);
     }
 
     for (size_t i = 0; i < ctx_count; i++) {
@@ -1081,8 +1107,10 @@ lean_obj_res numlean_opencl_float32arrayopencl_axpy(float alpha, lean_obj_arg x_
         if (err != CL_SUCCESS) lean_internal_panic("clSetKernelArg failed for axpy arg 2");
         err = clSetKernelArg(kernel, 3, sizeof(cl_ulong), &n_arg);
         if (err != CL_SUCCESS) lean_internal_panic("clSetKernelArg failed for axpy arg 3");
-        err = clEnqueueNDRangeKernel(g_numleanopencl_ctx.queue, kernel, 1, NULL, &global, &local, 0, NULL, NULL);
+        cl_event event = NULL;
+        err = clEnqueueNDRangeKernel(g_numleanopencl_ctx.queue, kernel, 1, NULL, &global, &local, 0, NULL, &event);
         if (err != CL_SUCCESS) lean_internal_panic("clEnqueueNDRangeKernel failed for axpy");
+        numlean_opencl_profile_record("kernel/axpy", stop, 0, event);
     }
     lean_dec(x_obj);
     return y_obj;

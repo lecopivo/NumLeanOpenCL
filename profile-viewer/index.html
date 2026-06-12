@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>NumLeanOpenCL Profile Viewer</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <div>
+          <p class="eyebrow">NumLeanOpenCL</p>
+          <h1>OpenCL Profile Viewer</h1>
+          <p class="summary">Load profiler output, sort event timings, and inspect command scheduling from queued to end.</p>
+        </div>
+        <div class="stats" id="stats"></div>
+      </header>
+
+      <section class="panel controls">
+        <label class="file-label">
+          Load Output File
+          <input id="fileInput" type="file" accept=".txt,.csv,text/plain">
+        </label>
+        <button id="loadSample" type="button">Load Sample</button>
+        <button id="clear" type="button">Clear</button>
+      </section>
+
+      <section class="panel input-panel">
+        <label for="rawInput">Profiler Output</label>
+        <textarea id="rawInput" spellcheck="false" placeholder="Paste output from ./.lake/build/bin/opencl_profile here..."></textarea>
+        <button id="parse" type="button">Parse Output</button>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <h2>Scheduling Timeline</h2>
+          <p>Each row shows queued→submit delay, submit→start delay, and execution duration.</p>
+        </div>
+        <div class="timeline-controls">
+          <label>
+            Kind
+            <select id="kindFilter">
+              <option value="all">all</option>
+              <option value="device">device</option>
+              <option value="host">host</option>
+            </select>
+          </label>
+          <label>
+            Label Filter
+            <input id="labelFilter" type="search" placeholder="kernel, compile, axpy...">
+          </label>
+          <label class="check-label">
+            <input id="compressGaps" type="checkbox">
+            Compress idle gaps
+          </label>
+          <button id="resetZoom" type="button">Reset Zoom</button>
+        </div>
+        <div class="legend">
+          <span><i class="queued"></i> queued to submit</span>
+          <span><i class="waiting"></i> submit to start</span>
+          <span><i class="running"></i> start to end</span>
+          <span><i class="transfer"></i> transfer running</span>
+          <span><i class="host"></i> host compile/build</span>
+        </div>
+        <p id="zoomInfo" class="zoom-info">Drag across the timeline to zoom into a subinterval.</p>
+        <div id="timeline" class="timeline empty">No profile loaded.</div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <h2>Events</h2>
+          <p>Click any column header to sort ascending/descending.</p>
+        </div>
+        <div class="table-wrap">
+          <table id="eventsTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

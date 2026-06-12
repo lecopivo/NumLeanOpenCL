@@ -27,7 +27,25 @@ typedef struct {
     size_t capacity;
 } NumLeanOpenCLFloat32Array;
 
-lean_obj_res numlean_opencl_init(lean_obj_arg world);
+typedef struct {
+    int is_host;
+    char label[64];
+    size_t work_items;
+    size_t bytes;
+    cl_event event;
+    double host_start_us;
+    double host_end_us;
+} NumLeanOpenCLProfileEvent;
+
+lean_obj_res numlean_opencl_init(void);
+lean_obj_res numlean_opencl_profile_start(void);
+lean_obj_res numlean_opencl_profile_stop(void);
+lean_obj_res numlean_opencl_profile_clear(void);
+lean_obj_res numlean_opencl_profile_mark(b_lean_obj_arg label);
+lean_obj_res numlean_opencl_profile_dump(void);
+void numlean_opencl_profile_record(const char* label, size_t work_items, size_t bytes, cl_event event);
+double numlean_opencl_profile_now_us(void);
+void numlean_opencl_profile_record_host(const char* label, double start_us, double end_us);
 lean_obj_res numlean_opencl_float32opencl_of_float32(float x);
 
 lean_obj_res numlean_opencl_float32array_mk(lean_obj_arg data);
@@ -43,6 +61,7 @@ uint8_t numlean_opencl_float32array_beq(lean_obj_arg a, lean_obj_arg b);
 lean_obj_res numlean_opencl_float32array_add(lean_obj_arg a, lean_obj_arg b);
 
 lean_obj_res numlean_opencl_float32arrayopencl_mk(lean_obj_arg data);
+lean_obj_res numlean_opencl_float32arrayopencl_of_array(lean_obj_arg data);
 lean_obj_res numlean_opencl_float32arrayopencl_data(b_lean_obj_arg xs);
 lean_obj_res numlean_opencl_float32arrayopencl_to_array(b_lean_obj_arg xs);
 lean_obj_res numlean_opencl_float32arrayopencl_empty_with_capacity(b_lean_obj_arg capacity);
