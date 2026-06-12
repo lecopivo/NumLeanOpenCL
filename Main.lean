@@ -13,4 +13,3 @@ def main : IO Unit := do
   IO.println s!"OpenCL OpenCLFloat32Array add[1]: {zs.get! 1}"
   IO.println s!"OpenCL OpenCLFloat32Array beq self: {zs == zs}"
   IO.println s!"OpenCL OpenCLFloat32 sum: {s.get}"
-  IO.println s!"Hello, {hello}!"
